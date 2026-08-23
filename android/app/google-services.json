@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "278955640717",
+    "project_id": "bambamuser",
+    "storage_bucket": "bambamuser.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:278955640717:android:d2657ec30dc364a762dfc4",
+        "android_client_info": {
+          "package_name": "com.bambam.driver"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "278955640717-2n8b3kk6e2n70gg3n5l2isg2pg5jkbf1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bambam.driver",
+            "certificate_hash": "9507dedcba586f3d0c99e3810e036673b1812ce3"
+          }
+        },
+        {
+          "client_id": "278955640717-6rneco8nspdo6jg9rd9phprhd8bmmnv1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bambam.driver",
+            "certificate_hash": "ddb4a5afe35aa5386bde633536e1edc5fb970563"
+          }
+        },
+        {
+          "client_id": "278955640717-7bge7bg04luqclsg37ho0heorvh076ju.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmEAymIMx91M4_bXKfLoK-LovQomjsEcg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "278955640717-7bge7bg04luqclsg37ho0heorvh076ju.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "278955640717-n27ur5cl9jepvnjul3hqi0as1nl3ioqc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bamBamDriver"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

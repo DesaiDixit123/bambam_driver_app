@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:bam_bam_driver/app/app.dart';
 import 'package:bam_bam_driver/domain/domain.dart';
+import 'package:bam_bam_driver/app/pages/Trip_screen/trip_binding.dart';
 
 class HomeBinding extends Bindings {
   @override
@@ -12,5 +13,6 @@ class HomeBinding extends Bindings {
         ),
       ),
     );
+    TripBinding().dependencies();
   }
 }

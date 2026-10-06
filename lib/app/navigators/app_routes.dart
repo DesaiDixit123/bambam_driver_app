@@ -32,6 +32,11 @@ abstract class Routes {
   static const approvalPendingScreen = _Paths.approvalPendingScreen;
   static const rejectedRidesScreen = _Paths.rejectedRidesScreen;
   static const registerScreen = _Paths.registerScreen;
+  static const quickRegisterScreen = _Paths.quickRegisterScreen;
+  static const earningsVaultScreen = _Paths.earningsVaultScreen;
+  static const transactionHistoryScreen = _Paths.transactionHistoryScreen;
+  static const withdrawScreen = _Paths.withdrawScreen;
+  static const topUpWalletScreen = _Paths.topUpWalletScreen;
 }
 
 abstract class _Paths {
@@ -66,6 +71,11 @@ abstract class _Paths {
   static const approvalPendingScreen = '/approvalPendingScreen';
   static const rejectedRidesScreen = '/rejectedRidesScreen';
   static const registerScreen = '/registerScreen';
+  static const quickRegisterScreen = '/quickRegisterScreen';
+  static const earningsVaultScreen = '/earningsVaultScreen';
+  static const transactionHistoryScreen = '/transactionHistoryScreen';
+  static const withdrawScreen = '/withdrawScreen';
+  static const topUpWalletScreen = '/topUpWalletScreen';
 }
 
 

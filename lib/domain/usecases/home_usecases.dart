@@ -171,4 +171,169 @@ class HomeUsecases {
       return ResponseModel(data: '{"message":"$e"}', hasError: true);
     }
   }
+
+  /// Reverse geocode GPS coordinates to address details
+  Future<ResponseModel> reverseGeocode({
+    required double lat,
+    required double lng,
+  }) async {
+    final uri = Uri.parse('${ApiWrapper.baseUrl}reverse-geocode');
+    try {
+      final body = jsonEncode({
+        'lat': lat,
+        'lng': lng,
+      });
+
+      final response = await ApiWrapper.client
+          .post(
+            uri,
+            body: body,
+            headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(
+        data: '{"message":"Reverse geocoding failed: ${e.toString()}"}',
+        hasError: true,
+      );
+    }
+  }
+
+  /// Update driver's GPS location on backend
+  Future<ResponseModel> updateDriverLocation({
+    required double lat,
+    required double lng,
+  }) async {
+    final uri = Uri.parse('${ApiWrapper.baseUrl}application/update-location');
+    try {
+      final body = jsonEncode({
+        'latitude': lat,
+        'longitude': lng,
+      });
+
+      final response = await ApiWrapper.client
+          .post(
+            uri,
+            body: body,
+            headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: true),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(data: '{"message":"$e"}', hasError: true);
+    }
+  }
+
+  /// 💰 Get Driver Earnings Vault Data
+  Future<ResponseModel> getEarningsVaultData({
+    String? startDate,
+    String? endDate,
+    String? tripType,
+    int page = 1,
+    int limit = 10,
+    bool showLoader = true,
+  }) async {
+    final api = ApiWrapper();
+    final headers = Utility.commonHeader(isDefaultAuthorizationKeyAdd: true);
+    final body = {
+      if (startDate != null && startDate.isNotEmpty) 'start_date': startDate,
+      if (endDate != null && endDate.isNotEmpty) 'end_date': endDate,
+      if (tripType != null && tripType.isNotEmpty) 'trip_type': tripType,
+      'page': page,
+      'limit': limit,
+    };
+    return await api.makeRequest(
+      'application/earnings-vault',
+      Request.post,
+      body,
+      showLoader,
+      headers,
+      isTokenRequired: true,
+    );
+  }
+
+  /// 💸 Driver Withdrawal Request
+  Future<ResponseModel> withdrawEarnings({
+    required int amount,
+    String method = "Bank",
+    Map<String, dynamic>? bankDetails,
+    String? upiId,
+    String? notes,
+    bool showLoader = true,
+  }) async {
+    final api = ApiWrapper();
+    final headers = Utility.commonHeader(isDefaultAuthorizationKeyAdd: true);
+    final body = {
+      'amount': amount,
+      'method': method,
+      if (bankDetails != null) 'bank_details': bankDetails,
+      if (upiId != null) 'upi_id': upiId,
+      if (notes != null) 'notes': notes,
+    };
+    return await api.makeRequest(
+      'application/earnings-vault/withdraw',
+      Request.post,
+      body,
+      showLoader,
+      headers,
+      isTokenRequired: true,
+    );
+  }
+
+  /// 💳 Create Top-Up Order
+  Future<ResponseModel> createTopUpOrder({
+    required int amount,
+    String? razorpayUserId,
+    bool showLoader = true,
+  }) async {
+    final api = ApiWrapper();
+    final headers = Utility.commonHeader(isDefaultAuthorizationKeyAdd: true);
+    final body = {
+      'amount': amount,
+      if (razorpayUserId != null) 'razorpay_user_id': razorpayUserId,
+    };
+    return await api.makeRequest(
+      'application/earnings-vault/topup-order',
+      Request.post,
+      body,
+      showLoader,
+      headers,
+      isTokenRequired: true,
+    );
+  }
+
+  /// ✅ Verify Top-Up Payment
+  Future<ResponseModel> verifyTopUpPayment({
+    required String razorpayOrderId,
+    required String razorpayPaymentId,
+    required String razorpaySignature,
+    bool showLoader = true,
+  }) async {
+    final api = ApiWrapper();
+    final headers = Utility.commonHeader(isDefaultAuthorizationKeyAdd: true);
+    final body = {
+      'razorpay_order_id': razorpayOrderId,
+      'razorpay_payment_id': razorpayPaymentId,
+      'razorpay_signature': razorpaySignature,
+    };
+    return await api.makeRequest(
+      'application/earnings-vault/topup-verify',
+      Request.post,
+      body,
+      showLoader,
+      headers,
+      isTokenRequired: true,
+    );
+  }
 }

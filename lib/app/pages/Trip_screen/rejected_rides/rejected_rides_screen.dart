@@ -131,50 +131,72 @@ class RejectedRidesScreen extends StatelessWidget {
   }
 
   Widget _buildRouteInfo(String tripType, String pickup, String drop, String date, String time) {
-    return Row(
+    final bool isLocal = tripType == "Local Rental Trip";
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
+        // Pickup Row
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.circle_outlined, color: Colors.green, size: 16),
-            if (tripType != "Local Rental Trip") ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Dash(
-                  direction: Axis.vertical,
-                  length: 30,
-                  dashLength: 3,
-                  dashColor: Colors.grey.shade300,
-                ),
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(Icons.circle_outlined, color: Colors.green, size: 16),
+            ),
+            Dimens.boxWidth12,
+            Expanded(
+              child: Text(
+                pickup,
+                style: Styles.txtBlackColorW50016,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              const Icon(Icons.location_on, color: Colors.red, size: 16),
-            ],
+            ),
           ],
         ),
-        Dimens.boxWidth12,
-        Expanded(
-          child: Column(
+
+        // Vertical Dash Connecting Pickup -> Drop
+        if (!isLocal) ...[
+          const Padding(
+            padding: EdgeInsets.only(left: 7, top: 4, bottom: 4),
+            child: Dash(
+              direction: Axis.vertical,
+              length: 20,
+              dashLength: 3,
+              dashColor: Colors.grey,
+            ),
+          ),
+          // Drop Row
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(pickup, 
-                   style: Styles.txtBlackColorW50016, 
-                   maxLines: 2, 
-                   overflow: TextOverflow.ellipsis),
-              Dimens.boxHeight4,
-              Row(
-                children: [
-                  Icon(Icons.calendar_month, size: 14, color: Colors.grey.shade500),
-                  Dimens.boxWidth4,
-                  Text("$date | $time", style: Styles.txtG5ColorsW40012),
-                ],
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(Icons.location_on, color: Colors.red, size: 16),
               ),
-              if (tripType != "Local Rental Trip") ...[
-                Dimens.boxHeight20,
-                Text(drop, 
-                     style: Styles.txtBlackColorW50016, 
-                     maxLines: 2, 
-                     overflow: TextOverflow.ellipsis),
-              ],
+              Dimens.boxWidth12,
+              Expanded(
+                child: Text(
+                  drop,
+                  style: Styles.txtBlackColorW50016,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+
+        // Date and Time (brought BELOW Drop)
+        Dimens.boxHeight10,
+        Padding(
+          padding: const EdgeInsets.only(left: 28),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_month, size: 14, color: Colors.grey.shade500),
+              Dimens.boxWidth4,
+              Text("$date | $time", style: Styles.txtG5ColorsW40012),
             ],
           ),
         ),

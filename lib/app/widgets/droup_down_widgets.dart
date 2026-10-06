@@ -66,7 +66,7 @@ class DroupDownButtonWigeat<T> extends StatelessWidget {
           Dimens.boxHeight5,
         ],
         DropdownButtonFormField<T>(
-          value: value,
+          value: (value != null && items.contains(value)) ? value : (items.isNotEmpty ? items.first : null),
           style: textStyle,
           decoration: InputDecoration(
             filled: true,

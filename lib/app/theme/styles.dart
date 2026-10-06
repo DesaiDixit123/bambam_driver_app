@@ -17,6 +17,16 @@ abstract class Styles {
     fontSize: Dimens.eighteen,
     fontWeight: FontWeight.w700,
   );
+  static TextStyle txtBlackColorW70016 = GoogleFonts.poppins(
+    color: ColorsValue.txtBlackColor,
+    fontSize: Dimens.sixteen,
+    fontWeight: FontWeight.w700,
+  );
+  static TextStyle txtBlackColorW70014 = GoogleFonts.poppins(
+    color: ColorsValue.txtBlackColor,
+    fontSize: Dimens.fourteen,
+    fontWeight: FontWeight.w700,
+  );
   static TextStyle txtBlackColorW50018 = GoogleFonts.poppins(
     color: ColorsValue.txtBlackColor,
     fontSize: Dimens.eighteen,
@@ -32,10 +42,25 @@ abstract class Styles {
     fontSize: Dimens.fourteen,
     fontWeight: FontWeight.w600,
   );
+  static TextStyle txtBlackColorW60018 = GoogleFonts.poppins(
+    color: ColorsValue.txtBlackColor,
+    fontSize: Dimens.eighteen,
+    fontWeight: FontWeight.w600,
+  );
   static TextStyle txtBlackColorW60016 = GoogleFonts.poppins(
     color: ColorsValue.txtBlackColor,
     fontSize: Dimens.sixteen,
     fontWeight: FontWeight.w600,
+  );
+  static TextStyle txtBlackColorW60014 = GoogleFonts.poppins(
+    color: ColorsValue.txtBlackColor,
+    fontSize: Dimens.fourteen,
+    fontWeight: FontWeight.w600,
+  );
+  static TextStyle txtBlackColorW40012 = GoogleFonts.poppins(
+    color: ColorsValue.txtBlackColor,
+    fontSize: Dimens.twelve,
+    fontWeight: FontWeight.w400,
   );
   static TextStyle txtBlackColorW50014 = GoogleFonts.poppins(
     color: ColorsValue.txtBlackColor,

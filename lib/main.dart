@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +14,20 @@ import 'package:bam_bam_driver/app/app.dart';
 import 'package:bam_bam_driver/data/data.dart';
 import 'package:bam_bam_driver/device/device.dart';
 import 'package:bam_bam_driver/domain/domain.dart';
+import 'package:bam_bam_driver/domain/services/audio_service.dart';
+import 'package:bam_bam_driver/domain/services/native_overlay_service.dart';
+import 'package:bam_bam_driver/domain/services/socket_connection.dart';
+import 'package:bam_bam_driver/app/pages/home_screen/Screens/new_ride_popup.dart';
+
+const AndroidNotificationChannel _rideAlertChannel = AndroidNotificationChannel(
+  'ride_alert_channel',
+  'Ride Alert Notifications',
+  description: 'High priority incoming ride alerts with alarm ringtone.',
+  importance: Importance.max,
+  playSound: true,
+  sound: RawResourceAndroidNotificationSound('alarm_clock'),
+  enableVibration: true,
+);
 
 const AndroidNotificationChannel _firebaseChannel = AndroidNotificationChannel(
   'high_importance_channel',
@@ -22,20 +39,58 @@ const AndroidNotificationChannel _firebaseChannel = AndroidNotificationChannel(
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print('FCM Background Message received: ${message.messageId}');
-  
-  // Filtering Logic for Background
-  try {
-    // Note: In background, we might need to re-initialize Hive/Get if not already done
-    // but usually, for simple key reading, we can try to find the repository.
-    if (message.data['type'] == 'new_ride_request' || message.data['bookingId'] != null) {
-       // If it's a ride request, we usually want the foreground app to handle it via Socket
-       // but if we play sound here, we should filter.
+  print('FCM Background Message received: ${message.messageId}, data: ${message.data}');
+
+  final String type = (message.data['type'] ?? '').toString().toLowerCase();
+  final bool isRideMessage = type == 'new_ride' || type == 'new_ride_request';
+
+  if (isRideMessage) {
+    try {
+      const initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+      await flutterLocalNotificationsPlugin.initialize(settings: initializationSettings);
+
+      final androidPlugin = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin?.createNotificationChannel(_rideAlertChannel);
+
+      // Force screen wake up and bring to foreground over lockscreen
+      NativeOverlayService.bringToForeground(message.data);
+
+      // Play ringtone
+      AudioService.playRingtone();
+
+      // Show full-screen heads-up notification with alarm ringtone
+      final androidDetails = AndroidNotificationDetails(
+        _rideAlertChannel.id,
+        _rideAlertChannel.name,
+        channelDescription: _rideAlertChannel.description,
+        importance: Importance.max,
+        priority: Priority.max,
+        fullScreenIntent: true,
+        category: AndroidNotificationCategory.call,
+        playSound: true,
+        sound: const RawResourceAndroidNotificationSound('alarm_clock'),
+        enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
+        visibility: NotificationVisibility.public,
+        autoCancel: true,
+      );
+
+      final platformDetails = NotificationDetails(android: androidDetails);
+      await flutterLocalNotificationsPlugin.show(
+        id: message.hashCode,
+        title: message.notification?.title ?? message.data['title'] ?? '🚖 New Ride Request!',
+        body: message.notification?.body ?? message.data['body'] ?? 'You have a new ride request. Tap to view and accept.',
+        notificationDetails: platformDetails,
+        payload: jsonEncode(message.data),
+      );
+    } catch (e) {
+      print("FCM Background Notification Error: $e");
     }
-  } catch (e) {
-    print("FCM Background Filtering Error: $e");
   }
 }
 
@@ -48,20 +103,20 @@ Future<void> _showForegroundNotification(RemoteMessage message) async {
   try {
     if (Get.isRegistered<Repository>()) {
       final repo = Get.find<Repository>();
-      final currentLoginType = repo.getStringValue(LocalKeys.loginType);
-      
+      final currentLoginType = repo.getStringValue(LocalKeys.loginType).toLowerCase().trim();
+
       // Check if it's a ride request (from type or bookingId presence)
-      if (message.data['type'] == 'new_ride_request' || 
-          message.data['bookingId'] != null || 
-          title.toLowerCase().contains('ride') || 
+      if (message.data['type'] == 'new_ride_request' ||
+          message.data['bookingId'] != null ||
+          title.toLowerCase().contains('ride') ||
           title.toLowerCase().contains('booking')) {
-        
+
         final rideSource = message.data['source']?.toString();
         final vendorId = message.data['vendor_id']?.toString() ?? message.data['vendorRequestId']?.toString();
-        
+
         // A ride is considered a "Company Ride" if it comes from a Vendor source or has a vendor identifier
         bool isCompanyRide = (rideSource == 'Vendor') || (vendorId != null && vendorId.isNotEmpty && vendorId != "null");
-        
+
         if (currentLoginType == 'individual' && isCompanyRide) {
           print("FCM: Ignoring COMPANY ride notification in INDIVIDUAL mode.");
           return;
@@ -76,29 +131,59 @@ Future<void> _showForegroundNotification(RemoteMessage message) async {
   }
   // -----------------------
 
-  final androidDetails = AndroidNotificationDetails(
-    _firebaseChannel.id,
-    _firebaseChannel.name,
-    channelDescription: _firebaseChannel.description,
-    importance: Importance.high,
-    priority: Priority.high,
-    playSound: true,
-  );
+  final String type = (message.data['type'] ?? '').toString().toLowerCase();
+  final bool isRideMessage = type == 'new_ride' || type == 'new_ride_request';
+
+  final androidDetails = isRideMessage
+      ? AndroidNotificationDetails(
+          _rideAlertChannel.id,
+          _rideAlertChannel.name,
+          channelDescription: _rideAlertChannel.description,
+          importance: Importance.max,
+          priority: Priority.max,
+          fullScreenIntent: true,
+          category: AndroidNotificationCategory.call,
+          playSound: true,
+          sound: const RawResourceAndroidNotificationSound('alarm_clock'),
+          enableVibration: true,
+          vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
+          visibility: NotificationVisibility.public,
+        )
+      : AndroidNotificationDetails(
+          _firebaseChannel.id,
+          _firebaseChannel.name,
+          channelDescription: _firebaseChannel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          playSound: true,
+        );
 
   final platformDetails = NotificationDetails(android: androidDetails);
   await flutterLocalNotificationsPlugin.show(
     id: notification?.hashCode ?? message.hashCode,
-    title: title,
-    body: body,
+    title: title.isNotEmpty
+        ? title
+        : (isRideMessage ? '🚖 New Ride Request!' : 'BamBam Cabs Notification'),
+    body: body.isNotEmpty
+        ? body
+        : (isRideMessage ? 'A new ride request is available in your area.' : ''),
     notificationDetails: platformDetails,
-    payload: message.data.isNotEmpty ? message.data.toString() : null,
+    payload: message.data.isNotEmpty ? jsonEncode(message.data) : null,
   );
+
+  // If this foreground notification is a new ride request, show dialog & play ringtone immediately
+  if (isRideMessage) {
+    NativeOverlayService.bringToForeground(message.data);
+    AudioService.playRingtone();
+    print("FCM Foreground: Triggering showRidePopup fallback for new ride request...");
+    SocketConnection.showRidePopup(message.data);
+  }
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  
+
   // Initialize services early so Repository is available for FCM listeners
   await initServices();
 
@@ -108,13 +193,55 @@ Future<void> main() async {
     android: initializationSettingsAndroid,
     iOS: initializationSettingsDarwin,
   );
+
   await flutterLocalNotificationsPlugin.initialize(
     settings: initializationSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse response) {
+      if (response.payload != null && response.payload!.isNotEmpty) {
+        try {
+          final data = jsonDecode(response.payload!);
+          if (data is Map<String, dynamic>) {
+            final String type = (data['type'] ?? '').toString().toLowerCase();
+            if (type == 'new_ride' || type == 'new_ride_request') {
+              final bId = (data['bookingId'] ?? data['booking_id'] ?? '').toString();
+              if (bId.isNotEmpty) {
+                NewRidePopup.activeBookingIds.remove(bId);
+              }
+              NativeOverlayService.bringToForeground(data);
+              SocketConnection.showRidePopup(data);
+            }
+          }
+        } catch (e) {
+          print("Error handling notification payload: $e");
+        }
+      }
+    },
   );
 
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(_firebaseChannel);
+  final androidPlugin = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+  // Create both notification channels
+  await androidPlugin?.createNotificationChannel(_rideAlertChannel);
+  await androidPlugin?.createNotificationChannel(_firebaseChannel);
+
+  // Request Android 13+ Notification Permission
+  await androidPlugin?.requestNotificationsPermission();
+
+  // Request FCM Permission
+  try {
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: true,
+      provisional: false,
+      sound: true,
+    );
+  } catch (e) {
+    print("FCM permission request error: $e");
+  }
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -125,6 +252,33 @@ Future<void> main() async {
 
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     print('FCM Notification opened: ${message.messageId}');
+    if (message.data.isNotEmpty) {
+      final String type = (message.data['type'] ?? '').toString().toLowerCase();
+      if (type == 'new_ride' || type == 'new_ride_request') {
+        final bId = (message.data['bookingId'] ?? message.data['booking_id'] ?? '').toString();
+        if (bId.isNotEmpty) {
+          NewRidePopup.activeBookingIds.remove(bId);
+        }
+        NativeOverlayService.bringToForeground(message.data);
+        SocketConnection.showRidePopup(message.data);
+      }
+    }
+  });
+
+  // Handle cold launch from notification
+  FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+    if (message != null && message.data.isNotEmpty) {
+      final String type = (message.data['type'] ?? '').toString().toLowerCase();
+      if (type == 'new_ride' || type == 'new_ride_request') {
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          final bId = (message.data['bookingId'] ?? message.data['booking_id'] ?? '').toString();
+          if (bId.isNotEmpty) {
+            NewRidePopup.activeBookingIds.remove(bId);
+          }
+          SocketConnection.showRidePopup(message.data);
+        });
+      }
+    }
   });
 
   runApp(const MyApp());
@@ -160,7 +314,6 @@ class DbService extends GetxService {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -171,7 +324,7 @@ class MyApp extends StatelessWidget {
         statusBarColor: ColorsValue.appColor,
       ),
     );
-    // i will check
+
     return ScreenUtilInit(
       minTextAdapt: true,
       designSize: const Size(375, 745),

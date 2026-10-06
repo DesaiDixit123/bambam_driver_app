@@ -4,10 +4,11 @@ abstract class StringConstants {
   static String appName = 'Bam Bam Driver';
   static String bitlyToken = '2b5fa12f0ca6d0d40aecf7fd5fd0c2d914780daf';
   static String webLink = 'https://web.hookUp.in/';
-  static String placeSearchKey = 'AIzaSyCCb0R7kEmKTzZehC_AwE4Oc0Pq_I9kc_Q';
+  static String placeSearchKey = 'AIzaSyDzMSluKvGb0AFtFSFphcApmi7tSVsWEuo';
   static String profileMediaFolder = 'profile-media';
   static String photo = 'PHOTO';
   static String video = 'VIDEO';
+  static String razorPayKey = "rzp_test_RraS8FmwVpkMfC";
 }
 
 abstract class AttributeIdConstants {

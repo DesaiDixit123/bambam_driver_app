@@ -78,5 +78,6 @@ abstract class AssetConstants {
   static const String comleted_BG = "assets/image/comleted_BG.png";
   static const String collect_cash = "assets/svg/collect_cash.svg";
   static const String ringtone = "assets/audio/alarm_clock.mp3";
+  static const String ic_topup = "assets/svg/ic_topup.svg";
   static const String persson = "";
 }

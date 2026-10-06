@@ -1,6 +1,7 @@
 import 'package:bam_bam_driver/app/pages/Trip_screen/Screen/assigned_trip_screen.dart';
 import 'package:bam_bam_driver/app/pages/Trip_screen/Screen/trip_detiles_screen.dart';
 import 'package:bam_bam_driver/app/pages/Trip_screen/trip_binding.dart';
+import 'package:bam_bam_driver/app/pages/auth_screen/auth_controller.dart';
 import 'package:get/get.dart';
 
 import 'app_pages.dart';
@@ -68,6 +69,7 @@ static void gotoFineDetilesScreen({ String? fineId, Map<String, dynamic>? argume
     static void gotoTripDetilesScreen({
     required bool isComplectTrip,
     String? tripId,
+    String? requestId,
   }) {
     Get.to(
       () => const TripDetilesScreen(),
@@ -75,6 +77,7 @@ static void gotoFineDetilesScreen({ String? fineId, Map<String, dynamic>? argume
       arguments: {
         'isComplectTrip': isComplectTrip,
         if (tripId != null) 'trip_id': tripId,
+        if (requestId != null) 'request_id': requestId,
       },
     );
   }
@@ -103,11 +106,37 @@ static void gotoFineDetilesScreen({ String? fineId, Map<String, dynamic>? argume
   static void gotoApprovalPendingScreen() =>
       Get.toNamed<void>(Routes.approvalPendingScreen);
 
-  static void gotoRegisterScreen() =>
-      Get.toNamed<void>(Routes.registerScreen);
+  static void gotoRegisterScreen() {
+    try {
+      if (Get.isRegistered<AuthController>()) {
+        Get.find<AuthController>().resetRegistrationForm();
+      }
+    } catch (_) {}
+    Get.toNamed<void>(Routes.registerScreen);
+  }
+
+  static void gotoQuickRegisterScreen() {
+    try {
+      if (Get.isRegistered<AuthController>()) {
+        Get.find<AuthController>().resetQuickRegisterForm();
+      }
+    } catch (_) {}
+    Get.toNamed<void>(Routes.quickRegisterScreen);
+  }
 
   static void gotoRejectedRidesScreen() =>
       Get.toNamed<void>(Routes.rejectedRidesScreen);
 
+  static void gotoEarningsVaultScreen() =>
+      Get.toNamed<void>(Routes.earningsVaultScreen);
+
+  static void gotoTransactionHistoryScreen() =>
+      Get.toNamed<void>(Routes.transactionHistoryScreen);
+
+  static void gotoWithdrawScreen() =>
+      Get.toNamed<void>(Routes.withdrawScreen);
+
+  static void gotoTopUpWalletScreen() =>
+      Get.toNamed<void>(Routes.topUpWalletScreen);
 }
 

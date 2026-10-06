@@ -85,7 +85,9 @@ class CustomTextFormField extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title ?? "", style: titleStyle),
+              Flexible(
+                child: Text(title ?? "", style: titleStyle),
+              ),
               if (isCompulsory) ...[
                 Text(
                   " *",
@@ -179,6 +181,7 @@ class CustomTextFormField extends StatelessWidget {
                     )
                   : null,
               suffixIcon: suffixIcon,
+              counterText: '',
               hintText: hintText,
               hintStyle: hintStyle,
               errorStyle: errorStyle,

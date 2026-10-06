@@ -1,5 +1,6 @@
 import 'package:bam_bam_driver/app/app.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 
@@ -108,6 +109,11 @@ class LoginScreen extends StatelessWidget {
                     //filled: true,
                     isBorder: true,
                     isTitle: true,
+                    maxLength: 10,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
                     textEditingController:
                         controller.logainMobileNumberController,
                     onChanged: (vaule) {
@@ -115,8 +121,11 @@ class LoginScreen extends StatelessWidget {
                     },
                     keyboardType: TextInputType.phone,
                     validator: (value) {
-                      if (value!.isEmpty) {
+                      if (value == null || value.trim().isEmpty) {
                         return "Enter Phone No";
+                      }
+                      if (value.trim().length != 10) {
+                        return "Please enter a valid 10-digit Phone No";
                       }
                       return null;
                     },
@@ -154,7 +163,7 @@ class LoginScreen extends StatelessWidget {
                           style: Styles.txtDrakBulyColorw40014,
                         ),
                         GestureDetector(
-                          onTap: RouteManagement.gotoRegisterScreen,
+                          onTap: RouteManagement.gotoQuickRegisterScreen,
                           child: Text(
                             "Register here".tr,
                             style: Styles.txtBlackColorW50016.copyWith(

@@ -5,3 +5,4 @@ export 'notification_controller.dart';
 export 'rules_screen.dart';
 export 'support_screen.dart';
 export 'Fines/fines.dart';
+export 'Earnings_Vault/earnings_vault.dart';

@@ -44,6 +44,38 @@ abstract class Utility {
     appId: 'com.bambam.driver',
   );
 
+  /// Open Google Maps for navigation/directions to the given address
+  static Future<void> openMap(String address) async {
+    final cleanAddr = address.trim();
+    if (cleanAddr.isEmpty || cleanAddr == '—' || cleanAddr == 'null') {
+      Utility.showMessage("Address not available", MessageType.error, null, "OK");
+      return;
+    }
+    final query = Uri.encodeComponent(cleanAddr);
+    final navUri = Uri.parse("google.navigation:q=$query&mode=d");
+    final dirUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$query&travelmode=driving");
+
+    try {
+      if (await canLaunchUrl(navUri)) {
+        await launchUrl(navUri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      if (await canLaunchUrl(dirUri)) {
+        await launchUrl(dirUri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      await launchUrl(dirUri, mode: LaunchMode.platformDefault);
+    } catch (e) {
+      Utility.showMessage("Could not open map: $e", MessageType.error, null, "OK");
+    }
+  }
+
   //ApiHeader
   static Map<String, String> commonHeader({
     Map<String, String>? otherHeader,
@@ -1228,5 +1260,72 @@ abstract class Utility {
     } else {
       print('Failed to download PDF. Status code: ${response.statusCode}');
     }
+  }
+
+  static const MethodChannel _nativeChannel = MethodChannel('com.bambam.driver/overlay');
+
+  /// Saves file bytes directly into the public Downloads directory using Android MediaStore
+  static Future<bool> saveBytesToPublicDownloads({
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+    String? url,
+  }) async {
+    bool saved = false;
+
+    // 1. Android MediaStore Downloads & DownloadManager
+    if (Platform.isAndroid) {
+      try {
+        final res = await _nativeChannel.invokeMethod('saveToDownloads', {
+          'bytes': bytes,
+          'fileName': fileName,
+          'mimeType': mimeType,
+        });
+        if (res != null) {
+          saved = true;
+          debugPrint("Saved to MediaStore Downloads: $res");
+        }
+      } catch (e) {
+        debugPrint("Error in native saveToDownloads: $e");
+      }
+
+      // Also trigger DownloadManager notification if URL exists
+      if (url != null && url.isNotEmpty) {
+        try {
+          await _nativeChannel.invokeMethod('startDownloadManager', {
+            'url': url,
+            'fileName': fileName,
+            'mimeType': mimeType,
+          });
+        } catch (e) {
+          debugPrint("Error in startDownloadManager: $e");
+        }
+      }
+    }
+
+    // 2. Direct Downloads directory attempt (fallback for permissions / iOS)
+    try {
+      Directory? targetDir;
+      if (Platform.isAndroid) {
+        final downloadDir = Directory('/storage/emulated/0/Download');
+        if (await downloadDir.exists()) {
+          targetDir = downloadDir;
+        } else {
+          targetDir = await getExternalStorageDirectory();
+        }
+      } else {
+        targetDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (targetDir != null) {
+        final file = File('${targetDir.path}/$fileName');
+        await file.writeAsBytes(bytes, flush: true);
+        saved = true;
+      }
+    } catch (e) {
+      debugPrint("Fallback file write error: $e");
+    }
+
+    return saved;
   }
 }

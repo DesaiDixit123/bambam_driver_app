@@ -51,10 +51,32 @@ class ProfilePresenter {
     }
   }
 
+  /// GET rent agreement document for rented vehicles
+  Future<ResponseModel> getRentAgreement() async {
+    final uri = Uri.parse('${baseUrl}rent-agreement?_t=${DateTime.now().millisecondsSinceEpoch}');
+    try {
+      final response = await ApiWrapper.client
+          .get(uri, headers: {
+            ...Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          })
+          .timeout(const Duration(seconds: 30));
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(data: '{"message":"Something went wrong"}', hasError: true);
+    }
+  }
+
+  /// PUT update profile with multipart/form-data
   /// PUT update profile with multipart/form-data
   ///
   /// fields is a map of simple form fields (string values)
-  /// filePaths is map with keys 'driver_photo' and/or 'DL_photo' pointing to local file paths (optional)
+  /// filePaths is map of any file field name pointing to local file paths (optional)
   Future<ResponseModel> updateProfile({
     required Map<String, String> fields,
     Map<String, String?>? filePaths,
@@ -74,21 +96,17 @@ class ProfilePresenter {
 
       // add files if provided
       if (filePaths != null) {
-        if (filePaths.containsKey('driver_photo') && filePaths['driver_photo'] != null) {
-          final driverPhotoPath = filePaths['driver_photo']!;
-          request.files.add(await http.MultipartFile.fromPath(
-            'driver_photo',
-            driverPhotoPath,
-            contentType: _getMediaType(driverPhotoPath),
-          ));
-        }
-        if (filePaths.containsKey('DL_photo') && filePaths['DL_photo'] != null) {
-          final dlPhotoPath = filePaths['DL_photo']!;
-          request.files.add(await http.MultipartFile.fromPath(
-            'DL_photo',
-            dlPhotoPath,
-            contentType: _getMediaType(dlPhotoPath),
-          ));
+        for (var entry in filePaths.entries) {
+          if (entry.value != null && entry.value!.isNotEmpty) {
+            final f = File(entry.value!);
+            if (await f.exists()) {
+              request.files.add(await http.MultipartFile.fromPath(
+                entry.key,
+                entry.value!,
+                contentType: _getMediaType(entry.value!),
+              ));
+            }
+          }
         }
       }
 
@@ -106,6 +124,267 @@ class ProfilePresenter {
       return ResponseModel(data: '{"message":"Request timed out"}', hasError: true);
     } catch (e) {
       return ResponseModel(data: '{"message":"Something went wrong: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Master data: Vehicle types
+  Future<ResponseModel> getVehicleTypes() async {
+    final uri = Uri.parse('${baseUrl}vehicle-types');
+    try {
+      final response = await ApiWrapper.client
+          .post(uri, headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false))
+          .timeout(const Duration(seconds: 15));
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(data: '{"message":"Error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Master data: Fuel types
+  Future<ResponseModel> getFuelTypes() async {
+    final uri = Uri.parse('${baseUrl}fuel-types');
+    try {
+      final response = await ApiWrapper.client
+          .get(uri, headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false))
+          .timeout(const Duration(seconds: 15));
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(data: '{"message":"Error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Master data: Languages
+  Future<ResponseModel> getLanguages() async {
+    final uri = Uri.parse('${baseUrl}languages');
+    try {
+      final response = await ApiWrapper.client
+          .post(uri, headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false))
+          .timeout(const Duration(seconds: 15));
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(data: '{"message":"Error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Master data: States
+  Future<ResponseModel> getStates() async {
+    final uri = Uri.parse('${baseUrl}states');
+    try {
+      final response = await ApiWrapper.client
+          .get(uri, headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false))
+          .timeout(const Duration(seconds: 15));
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(data: '{"message":"Error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Master data: Cities
+  Future<ResponseModel> getCities(String stateCode) async {
+    final uri = Uri.parse('${baseUrl}cities/$stateCode');
+    try {
+      final response = await ApiWrapper.client
+          .get(uri, headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false))
+          .timeout(const Duration(seconds: 15));
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(data: '{"message":"Error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Verification: Driving License
+  Future<ResponseModel> verifyDL({required String dlNumber, required String dob, bool showLoader = true}) async {
+    final uri = Uri.parse('${baseUrl}verify/dl');
+    if (showLoader) Utility.showLoader();
+    try {
+      final response = await ApiWrapper.client.post(
+        uri,
+        body: jsonEncode({'dl_number': dlNumber.trim().toUpperCase(), 'dob': dob.trim()}),
+        headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+      ).timeout(const Duration(seconds: 20));
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(data: '{"message":"DL verification error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Verification: PAN
+  Future<ResponseModel> verifyPAN({required String panNumber, bool showLoader = true}) async {
+    final uri = Uri.parse('${baseUrl}verify/pan');
+    if (showLoader) Utility.showLoader();
+    try {
+      final response = await ApiWrapper.client.post(
+        uri,
+        body: jsonEncode({'pan_number': panNumber.trim().toUpperCase()}),
+        headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+      ).timeout(const Duration(seconds: 20));
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(data: '{"message":"PAN verification error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Verification: GST
+  Future<ResponseModel> verifyGST({required String gstNumber, bool showLoader = true}) async {
+    final uri = Uri.parse('${baseUrl}verify/gst');
+    if (showLoader) Utility.showLoader();
+    try {
+      final response = await ApiWrapper.client.post(
+        uri,
+        body: jsonEncode({'gst_number': gstNumber.trim().toUpperCase()}),
+        headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+      ).timeout(const Duration(seconds: 20));
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(data: '{"message":"GST verification error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Verification: RC
+  Future<ResponseModel> verifyRC({required String vehicleNumber, bool showLoader = true}) async {
+    final uri = Uri.parse('${baseUrl}verify/rc');
+    if (showLoader) Utility.showLoader();
+    try {
+      final response = await ApiWrapper.client.post(
+        uri,
+        body: jsonEncode({'vehicle_number': vehicleNumber.trim().toUpperCase()}),
+        headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+      ).timeout(const Duration(seconds: 20));
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(data: '{"message":"RC verification error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Verification: Bank Account & IFSC
+  Future<ResponseModel> verifyBank({required String accountNumber, required String ifscCode, bool showLoader = true}) async {
+    final uri = Uri.parse('${baseUrl}verify/bank');
+    if (showLoader) Utility.showLoader();
+    try {
+      final response = await ApiWrapper.client.post(
+        uri,
+        body: jsonEncode({'account_number': accountNumber.trim(), 'ifsc_code': ifscCode.trim().toUpperCase()}),
+        headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+      ).timeout(const Duration(seconds: 20));
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(data: '{"message":"Bank verification error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Verification: IFSC Code Only (fetches Bank Name & Branch)
+  Future<ResponseModel> verifyIFSC({required String ifscCode, bool showLoader = true}) async {
+    final uri = Uri.parse('${baseUrl}verify/ifsc');
+    if (showLoader) Utility.showLoader();
+    try {
+      final response = await ApiWrapper.client.post(
+        uri,
+        body: jsonEncode({'ifsc_code': ifscCode.trim().toUpperCase()}),
+        headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+      ).timeout(const Duration(seconds: 15));
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(data: '{"message":"IFSC verification error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Verification: Aadhaar OTP Request
+  Future<ResponseModel> requestAadhaarOtp({required String aadhaarNumber, bool showLoader = true}) async {
+    final uri = Uri.parse('${baseUrl}verify/aadhaar-otp');
+    if (showLoader) Utility.showLoader();
+    try {
+      final response = await ApiWrapper.client.post(
+        uri,
+        body: jsonEncode({'aadhaar_number': aadhaarNumber.trim()}),
+        headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+      ).timeout(const Duration(seconds: 20));
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(data: '{"message":"Aadhaar OTP request error: ${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Verification: Aadhaar OTP Verify
+  Future<ResponseModel> verifyAadhaarOtp({required String otp, required String refId, bool showLoader = true}) async {
+    final uri = Uri.parse('${baseUrl}verify/aadhaar-verify');
+    if (showLoader) Utility.showLoader();
+    try {
+      final response = await ApiWrapper.client.post(
+        uri,
+        body: jsonEncode({'otp': otp.trim(), 'ref_id': refId.trim()}),
+        headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false),
+      ).timeout(const Duration(seconds: 20));
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(data: '{"message":"Aadhaar verify error: ${e.toString()}"}', hasError: true);
     }
   }
 
@@ -339,6 +618,30 @@ class ProfilePresenter {
     } catch (e) {
       if (showLoader) Utility.closeLoader();
       return ResponseModel(data: '{"message":"Something went wrong","error":"${e.toString()}"}', hasError: true);
+    }
+  }
+
+  /// Reverse Geocode
+  Future<ResponseModel> reverseGeocode({
+    required double lat,
+    required double lng,
+  }) async {
+    final uri = Uri.parse('${ApiWrapper.baseUrl}reverse-geocode');
+    try {
+      final body = jsonEncode({
+        'lat': lat,
+        'lng': lng,
+      });
+      final response = await ApiWrapper.client
+          .post(uri, body: body, headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: false))
+          .timeout(const Duration(seconds: 15));
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return ResponseModel(data: '{"message":"Error: ${e.toString()}"}', hasError: true);
     }
   }
 

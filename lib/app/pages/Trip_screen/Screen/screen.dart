@@ -6,3 +6,4 @@ export 'otp_screen.dart';
 export 'trip_detiles_screen.dart';
 export 'tripTracking_screen.dart';
 export 'vehical_miter_screen.dart';
+export 'trip_invoice_screen.dart';

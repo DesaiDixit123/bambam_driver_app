@@ -29,4 +29,8 @@ abstract class ColorsValue {
   static Color l4CB = const Color(0xffF9FAFD); //#D8E2EF
   static Color borderColors = const Color(0xffD8E2EF); //#D8E2EF
   static Color coupanBG = const Color(0xffF7F7FC); //#D8E2EF
+  static Color l2 = const Color(0xffF2F2F7);
+  static Color l3 = const Color(0xffF9FAFB);
+  static Color fildColos = const Color(0xffF9FAFC);
+  static Color greenColor = const Color(0xff34C759);
 }

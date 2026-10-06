@@ -20,7 +20,7 @@
     <uses-permission android:name="android.permission.REORDER_TASKS"/>
 
     <application
-        android:label="bam_bam_driver"
+        android:label="Bam Bam Driver"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true">

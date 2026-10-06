@@ -2578,30 +2578,61 @@ class PersonalDetilesScreen extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade300),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: controller.vehiclesList.any((item) => item['id'] == controller.selectedVehicleType)
-                                          ? controller.selectedVehicleType
-                                          : null,
-                                      isExpanded: true,
-                                      hint: Text("Auto-detected from RC", style: Styles.txtG7Colors50016),
-                                      items: controller.vehiclesList.map((item) {
-                                        return DropdownMenuItem<String>(
-                                          value: item['id'],
-                                          child: Text(item['name'] ?? '', style: Styles.txtBlackColorW50016),
-                                        );
-                                      }).toList(),
-                                      onChanged: null,
+                                controller.isRcVerified && controller.selectedVehicleType != null
+                                    ? Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.grey.shade300),
+                                        ),
+                                        child: Text(
+                                          controller.vehiclesList.firstWhere(
+                                            (item) => item['id'] == controller.selectedVehicleType,
+                                            orElse: () => {'name': 'Auto-detected from RC'},
+                                          )['name'] ?? 'Auto-detected from RC',
+                                          style: Styles.txtBlackColorW50016,
+                                        ),
+                                      )
+                                    : Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.grey.shade300),
+                                        ),
+                                        child: DropdownButtonHideUnderline(
+                                          child: DropdownButton<String>(
+                                            value: controller.vehiclesList.any((item) => item['id'] == controller.selectedVehicleType)
+                                                ? controller.selectedVehicleType
+                                                : null,
+                                            isExpanded: true,
+                                            hint: Text("Auto-detected from RC", style: Styles.txtG7Colors50016),
+                                            items: controller.vehiclesList.map((item) {
+                                              return DropdownMenuItem<String>(
+                                                value: item['id'],
+                                                child: Text(item['name'] ?? '', style: Styles.txtBlackColorW50016),
+                                              );
+                                            }).toList(),
+                                            onChanged: (val) {
+                                              controller.selectedVehicleType = val;
+                                              controller.update();
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                if (controller.rcVehicleTypeError != null) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    controller.rcVehicleTypeError!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                             Dimens.boxHeight14,

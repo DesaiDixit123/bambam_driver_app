@@ -1536,6 +1536,7 @@ class AuthController extends GetxController {
   TextEditingController registerRcNumberController = TextEditingController(); // RC Number
   bool isRcVerified = false;
   bool isRcVerifying = false;
+  String? rcVehicleTypeError;
 
   Future<void> verifyRC() async {
     String vehNo = registerRcNumberController.text.trim();
@@ -1548,21 +1549,21 @@ class AuthController extends GetxController {
       return;
     }
     isRcVerifying = true;
+    rcVehicleTypeError = null;
     update();
     try {
       final res = await authPresenter.verifyRC(vehicleNumber: vehNo, showLoader: false);
       if (!res.hasError) {
-        isRcVerified = true;
-        verifiedRcNumber = vehNo;
-        registerRcNumberController.text = vehNo;
-        registerVehicleNumberController.text = vehNo;
-
         final body = jsonDecode(res.data);
         final data = ((body['Data'] ?? body['data'] ?? body) as Map<dynamic, dynamic>)
             .map((k, v) => MapEntry(k.toString(), v));
 
-        // Auto populate brand / make
-        final bName = (data['maker_model'] ?? data['brand_name'] ?? data['maker_description'] ?? '').toString().trim();
+        verifiedRcNumber = vehNo;
+        registerRcNumberController.text = vehNo;
+        registerVehicleNumberController.text = vehNo;
+
+        // Auto populate brand / make (prioritize model_name)
+        final bName = (data['model_name'] ?? data['brand_name'] ?? data['maker_model'] ?? data['maker_description'] ?? '').toString().trim();
         if (bName.isNotEmpty && bName != 'N/A') {
           registerVehicleMakeController.text = bName;
           if (brandList.contains(bName)) {
@@ -1608,37 +1609,56 @@ class AuthController extends GetxController {
           registerPermitExpiryController.text = formatDateToDdMmYyyy(permitUpto);
         }
 
-        // Auto match fuel type if possible
+        // Auto match fuel type (prioritize backend matched_fuel_type_ids or CNG)
         final fuel = (data['fuel_type'] ?? '').toString().trim().toUpperCase();
-        if (fuel.isNotEmpty && fuel != 'N/A' && fuelTypesList.isNotEmpty) {
-          bool matched = false;
-          for (final f in fuelTypesList) {
-            final fName = (f['name'] ?? '').toUpperCase().trim();
-            if (fName == fuel || fName.contains(fuel) || fuel.contains(fName)) {
-              selectedFuelType = f['id'];
-              matched = true;
-              break;
-            }
+        if (fuel.contains("CNG")) {
+          final cngItem = fuelTypesList.firstWhere(
+            (f) => (f['name'] ?? '').toUpperCase().contains('CNG'),
+            orElse: () => {},
+          );
+          if (cngItem.isNotEmpty && cngItem['id'] != null) {
+            selectedFuelType = cngItem['id'];
           }
-          if (!matched) {
-            final parts = fuel.split(RegExp(r'[/, -]+'));
-            for (final part in parts) {
-              if (part.isEmpty) continue;
-              for (final f in fuelTypesList) {
-                final fName = (f['name'] ?? '').toUpperCase().trim();
-                if (fName == part || fName.contains(part) || part.contains(fName)) {
-                  selectedFuelType = f['id'];
-                  matched = true;
-                  break;
-                }
+        }
+        if (selectedFuelType == null || (!fuel.contains("CNG"))) {
+          if (data['matched_fuel_type_ids'] != null && (data['matched_fuel_type_ids'] as List).isNotEmpty) {
+            selectedFuelType = data['matched_fuel_type_ids'][0].toString();
+          } else if (fuel.isNotEmpty && fuel != 'N/A' && fuelTypesList.isNotEmpty) {
+            bool matched = false;
+            for (final f in fuelTypesList) {
+              final fName = (f['name'] ?? '').toUpperCase().trim();
+              if (fName == fuel || fName.contains(fuel) || fuel.contains(fName)) {
+                selectedFuelType = f['id'];
+                matched = true;
+                break;
               }
-              if (matched) break;
+            }
+            if (!matched) {
+              final parts = fuel.split(RegExp(r'[/, -]+'));
+              for (final part in parts) {
+                if (part.isEmpty) continue;
+                for (final f in fuelTypesList) {
+                  final fName = (f['name'] ?? '').toUpperCase().trim();
+                  if (fName == part || fName.contains(part) || part.contains(fName)) {
+                    selectedFuelType = f['id'];
+                    matched = true;
+                    break;
+                  }
+                }
+                if (matched) break;
+              }
             }
           }
         }
 
-        // Auto-assign vehicle type from verified RC
-        if (data['vehicle_type_id'] != null) {
+        // Auto-assign vehicle type from verified RC or show unsupported warning
+        if (data['is_supported'] == false || data['vehicle_type_id'] == null) {
+          isRcVerified = false;
+          selectedVehicleType = null;
+          rcVehicleTypeError = "This brand is not verified by bambam";
+        } else {
+          isRcVerified = true;
+          rcVehicleTypeError = null;
           selectedVehicleType = data['vehicle_type_id'].toString();
         }
 
@@ -1648,16 +1668,22 @@ class AuthController extends GetxController {
         if (Get.context != null) {
           showRcDetailsDialog(Get.context!, data);
         } else {
-          Utility.showMessage("RC verified successfully!", MessageType.success, null, "OK");
+          if (isRcVerified) {
+            Utility.showMessage("RC verified successfully!", MessageType.success, null, "OK");
+          } else {
+            Utility.showMessage("This brand is not verified by bambam", MessageType.error, null, "OK");
+          }
         }
       } else {
         isRcVerified = false;
+        rcVehicleTypeError = "This brand is not verified by bambam";
         final body = jsonDecode(res.data);
-        final msg = body['message'] ?? body['Message'] ?? "Invalid Vehicle RC Number";
+        final msg = body['message'] ?? body['Message'] ?? "This brand is not verified by bambam";
         Utility.showMessage(msg.toString(), MessageType.error, null, "OK");
       }
     } catch (e) {
       isRcVerified = false;
+      rcVehicleTypeError = "This brand is not verified by bambam";
       Utility.showMessage("RC check error: $e", MessageType.error, null, "OK");
     } finally {
       isRcVerifying = false;
@@ -2293,7 +2319,15 @@ class AuthController extends GetxController {
         return false;
       }
       if (!isRcVerified) {
-        Utility.showMessage("Please verify RC Number first", MessageType.error, null, "OK");
+        if (rcVehicleTypeError != null) {
+          Utility.showMessage(rcVehicleTypeError!, MessageType.error, null, "OK");
+        } else {
+          Utility.showMessage("Please verify RC Number first", MessageType.error, null, "OK");
+        }
+        return false;
+      }
+      if (selectedVehicleType == null || rcVehicleTypeError != null) {
+        Utility.showMessage("This brand is not verified by bambam", MessageType.error, null, "OK");
         return false;
       }
       if (registerVehicleMakeController.text.trim().isEmpty) {

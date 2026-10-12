@@ -11,4 +11,7 @@ abstract class LocalKeys {
   static String channelId = "channelId";
   static String loginType = "loginType";
   static String isOnline = "isOnline";
+  static String driverApprovalStatus = "driverApprovalStatus";
+  static String driverRejectedReason = "driverRejectedReason";
+  static String driverRejectedDescription = "driverRejectedDescription";
 }

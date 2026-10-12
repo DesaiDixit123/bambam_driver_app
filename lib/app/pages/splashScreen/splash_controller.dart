@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart';
 import 'package:bam_bam_driver/app/app.dart';
@@ -31,13 +31,28 @@ class SplashController extends GetxController {
       final repository = Get.find<Repository>();
       final token = repository.getStringValue(LocalKeys.authToken);
 
-      // ✅ Log token in debug builds only (optional)
-      // print("Access Token: $token");
-
       // ✅ Null-safe and whitespace-safe check
       if (token.isNotEmpty && token.trim().isNotEmpty) {
-        // Token exists → go to home
-        RouteManagement.gotoHomeScreen();
+        String approvalStatus = repository.getStringValue(LocalKeys.driverApprovalStatus).toLowerCase().trim();
+        if (approvalStatus.isEmpty) {
+          final userDetailsStr = repository.getStringValue(LocalKeys.userDetails);
+          if (userDetailsStr.isNotEmpty) {
+            try {
+              final ud = jsonDecode(userDetailsStr);
+              if (ud is Map && ud['approval_status'] != null) {
+                approvalStatus = ud['approval_status'].toString().toLowerCase().trim();
+                repository.saveValue(LocalKeys.driverApprovalStatus, approvalStatus);
+              }
+            } catch (_) {}
+          }
+        }
+
+        // Check if approval is pending or rejected
+        if (approvalStatus == 'pending' || approvalStatus == 'rejected' || approvalStatus == 'draft') {
+          RouteManagement.gotoApprovalPendingScreen();
+        } else {
+          RouteManagement.gotoHomeScreen();
+        }
       } else {
         // No token → go to login
         RouteManagement.gotoLoginScreen();

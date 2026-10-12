@@ -382,6 +382,7 @@ class AuthController extends GetxController {
           driverMap = Map<String, dynamic>.from(data['userdetails']);
         }
 
+        String approvalStatus = 'pending';
         if (driverMap != null) {
           final userDetails = jsonEncode(driverMap);
           Get.find<Repository>().saveValue(LocalKeys.userDetails, userDetails);
@@ -390,6 +391,15 @@ class AuthController extends GetxController {
             Get.find<Repository>().saveValue(LocalKeys.channelId, driverId);
             SocketConnection.updateChannelId(driverId);
           }
+
+          approvalStatus = (driverMap['approval_status'] ?? 'pending').toString().toLowerCase().trim();
+          if (approvalStatus.isEmpty) approvalStatus = 'pending';
+          final rejectedReason = (driverMap['rejected_reason'] ?? '').toString();
+          final rejectedDesc = (driverMap['rejected_reason_description'] ?? '').toString();
+
+          Get.find<Repository>().saveValue(LocalKeys.driverApprovalStatus, approvalStatus);
+          Get.find<Repository>().saveValue(LocalKeys.driverRejectedReason, rejectedReason);
+          Get.find<Repository>().saveValue(LocalKeys.driverRejectedDescription, rejectedDesc);
         } else {
           final resolvedId = SocketConnection.getDriverId();
           if (resolvedId.isNotEmpty) {
@@ -406,8 +416,15 @@ class AuthController extends GetxController {
         Get.find<TripController>().rideRequests.clear();
       }
 
-      Utility.showMessage(successMsg, MessageType.success, null, 'ok');
-      RouteManagement.gotoHomeScreen();
+      final repo = Get.find<Repository>();
+      final status = repo.getStringValue(LocalKeys.driverApprovalStatus).toLowerCase().trim();
+
+      if (status == 'approved') {
+        Utility.showMessage(successMsg, MessageType.success, null, 'ok');
+        RouteManagement.gotoHomeScreen();
+      } else {
+        RouteManagement.gotoApprovalPendingScreen();
+      }
     } catch (e) {
       AudioService.stopRingtone();
       NewRidePopup.activeBookingIds.clear();
@@ -415,8 +432,14 @@ class AuthController extends GetxController {
       if (Get.isRegistered<TripController>()) {
         Get.find<TripController>().rideRequests.clear();
       }
-      Utility.showMessage('Login successful', MessageType.success, null, 'ok');
-      RouteManagement.gotoHomeScreen();
+      final repo = Get.find<Repository>();
+      final status = repo.getStringValue(LocalKeys.driverApprovalStatus).toLowerCase().trim();
+      if (status == 'approved') {
+        Utility.showMessage('Login successful', MessageType.success, null, 'ok');
+        RouteManagement.gotoHomeScreen();
+      } else {
+        RouteManagement.gotoApprovalPendingScreen();
+      }
     }
   }
 

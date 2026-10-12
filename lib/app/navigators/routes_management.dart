@@ -104,7 +104,7 @@ static void gotoFineDetilesScreen({ String? fineId, Map<String, dynamic>? argume
   static void gotoVehicalMiterScreen({required bool isStartTrip}) =>
       Get.toNamed<void>(Routes.vehicalMiterScreen, arguments: isStartTrip);
   static void gotoApprovalPendingScreen() =>
-      Get.toNamed<void>(Routes.approvalPendingScreen);
+      Get.offAllNamed<void>(Routes.approvalPendingScreen);
 
   static void gotoRegisterScreen() {
     try {

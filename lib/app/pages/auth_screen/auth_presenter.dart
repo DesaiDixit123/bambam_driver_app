@@ -120,6 +120,47 @@ class AuthPresenter {
     }
   }
 
+  /// GET driver profile to check live approval status
+  Future<ResponseModel> fetchDriverProfile({bool showLoader = false}) async {
+    if (!await Utility.isNetworkAvailable()) {
+      return ResponseModel(
+        data: '{"message":"No internet connection"}',
+        hasError: true,
+        statusCode: 1000,
+      );
+    }
+
+    final uri = Uri.parse('${ApiWrapper.baseUrl}profile');
+
+    if (showLoader) {
+      if (Get.isSnackbarOpen) await Get.closeCurrentSnackbar();
+      Utility.showLoader();
+    }
+
+    try {
+      final response = await ApiWrapper.client
+          .get(
+            uri,
+            headers: Utility.commonHeader(isDefaultAuthorizationKeyAdd: true),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (showLoader) Utility.closeLoader();
+
+      return ResponseModel(
+        data: response.body,
+        hasError: response.statusCode < 200 || response.statusCode >= 300,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      if (showLoader) Utility.closeLoader();
+      return ResponseModel(
+        data: '{"message":"Something went wrong","error":"${e.toString()}"}',
+        hasError: true,
+      );
+    }
+  }
+
   /// Verify OTP and login driver
   Future<ResponseModel> verifyOtp({
     required String phoneNo,

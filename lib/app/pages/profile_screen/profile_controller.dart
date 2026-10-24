@@ -888,6 +888,19 @@ class ProfileController extends GetxController {
       if (body is Map && body.containsKey('Data')) {
         profile = Map<String, dynamic>.from(body['Data']);
 
+        try {
+          final repo = Get.find<Repository>();
+          final bool isComp = profile?['is_profile_completed'] == true;
+          final String appStat = (profile?['approval_status'] ?? 'pending').toString().toLowerCase().trim();
+          final String rejReason = (profile?['rejected_reason'] ?? '').toString();
+          final String rejDesc = (profile?['rejected_reason_description'] ?? '').toString();
+          repo.saveValue(LocalKeys.isProfileCompleted, isComp);
+          repo.saveValue(LocalKeys.driverApprovalStatus, appStat);
+          repo.saveValue(LocalKeys.driverRejectedReason, rejReason);
+          repo.saveValue(LocalKeys.driverRejectedDescription, rejDesc);
+          repo.saveValue(LocalKeys.userDetails, jsonEncode(profile));
+        } catch (_) {}
+
         String driverId = profile?['_id']?.toString() ?? '';
         if (driverId.isNotEmpty) {
           SocketConnection.updateChannelId(driverId);
@@ -2197,9 +2210,9 @@ class ProfileController extends GetxController {
                     ),
                     onPressed: () {
                       Get.back();
-                      RouteManagement.gotoHomeScreen();
+                      RouteManagement.gotoApprovalPendingScreen();
                     },
-                    child: const Text("Go to Home", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: const Text("View Application Status", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -2210,7 +2223,12 @@ class ProfileController extends GetxController {
       );
     } else {
       Utility.showMessage('Profile updated successfully!', MessageType.success, null, 'OK');
-      RouteManagement.gotoHomeScreen();
+      final String currentStatus = (profile?['approval_status'] ?? '').toString().toLowerCase().trim();
+      if (!isCompanyDriver && currentStatus != 'approved') {
+        RouteManagement.gotoApprovalPendingScreen();
+      } else {
+        RouteManagement.gotoHomeScreen();
+      }
     }
   }
 

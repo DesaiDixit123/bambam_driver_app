@@ -348,6 +348,16 @@ abstract class Utility {
   ) {
     if (message == null || message.isEmpty) return;
 
+    String displayMessage = message;
+    final lowerMsg = displayMessage.toLowerCase();
+    if (lowerMsg.contains('duplicate value found') || lowerMsg.contains('e11000')) {
+      if (lowerMsg.contains('email')) {
+        displayMessage = 'This email ID already exists. Please enter another email ID.';
+      } else if (lowerMsg.contains('mobile') || lowerMsg.contains('phone')) {
+        displayMessage = 'This mobile number already exists. Please enter another mobile number.';
+      }
+    }
+
     Color bg = Colors.black;
     if (type == MessageType.error) bg = Colors.red;
     if (type == MessageType.success) bg = Colors.green;
@@ -364,7 +374,7 @@ abstract class Utility {
       SnackBar(
         content: Center(
           child: Text(
-            message,
+            displayMessage,
             style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
         ),

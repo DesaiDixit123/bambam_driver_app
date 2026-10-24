@@ -33,7 +33,7 @@ class DeviceRepository extends DomainRepository {
   /// Delete the box
   @override
   void deleteBox() {
-    Hive.box<void>(StringConstants.appName).clear();
+    _getBox().clear();
   }
 
   /// returns stored string value
@@ -44,8 +44,8 @@ class DeviceRepository extends DomainRepository {
     if (key == DeviceConstants.localLang) {
       defaultValue = DataConstants.defaultLang;
     }
-    String? value = box.get(key, defaultValue: defaultValue) as String;
-    return value;
+    var value = box.get(key, defaultValue: defaultValue);
+    return value?.toString() ?? defaultValue;
   }
 
   /// store the data
@@ -57,7 +57,7 @@ class DeviceRepository extends DomainRepository {
   /// return bool value
   @override
   bool getBoolValue(String key) =>
-      _getBox().get(key, defaultValue: false) as bool;
+      (_getBox().get(key, defaultValue: false) as bool?) ?? false;
 
   /// Get data from secure storage
   @override

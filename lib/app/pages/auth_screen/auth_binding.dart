@@ -9,8 +9,10 @@ class AuthBinding extends Bindings {
       () => AuthController(
         Get.put(
           AuthPresenter(Get.put(AuthUsecases(Get.find()), permanent: true)),
+          permanent: true,
         ),
       ),
+      fenix: true,
     );
   }
 }

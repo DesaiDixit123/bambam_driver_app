@@ -17,9 +17,7 @@ class Repository {
   void clearData(dynamic key) {
     try {
       _deviceRepository.clearData(key);
-    } catch (_) {
-      _dataRepository.clearData(key);
-    }
+    } catch (_) {}
   }
 
   /// Get the string value for the [key].
@@ -29,7 +27,7 @@ class Repository {
     try {
       return _deviceRepository.getStringValue(key);
     } catch (_) {
-      return _dataRepository.getStringValue(key);
+      return '';
     }
   }
 
@@ -40,9 +38,7 @@ class Repository {
   void saveValue(dynamic key, dynamic value) {
     try {
       _deviceRepository.saveValue(key, value);
-    } catch (_) {
-      _dataRepository.saveValue(key, value);
-    }
+    } catch (_) {}
   }
 
   /// Get the bool value for the [key].
@@ -52,7 +48,7 @@ class Repository {
     try {
       return _deviceRepository.getBoolValue(key);
     } catch (_) {
-      return _dataRepository.getBoolValue(key);
+      return false;
     }
   }
 
@@ -63,7 +59,7 @@ class Repository {
     try {
       return _deviceRepository.getBoolValue(key);
     } catch (_) {
-      return _dataRepository.getBoolValue(key);
+      return false;
     }
   }
 

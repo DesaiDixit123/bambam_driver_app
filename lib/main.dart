@@ -182,110 +182,124 @@ Future<void> _showForegroundNotification(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-
-  // Initialize services early so Repository is available for FCM listeners
-  await initServices();
-
-  const initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-  const initializationSettingsDarwin = DarwinInitializationSettings();
-  const initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsDarwin,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(
-    settings: initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse response) {
-      if (response.payload != null && response.payload!.isNotEmpty) {
-        try {
-          final data = jsonDecode(response.payload!);
-          if (data is Map<String, dynamic>) {
-            final String type = (data['type'] ?? '').toString().toLowerCase();
-            if (type == 'new_ride' || type == 'new_ride_request') {
-              final bId = (data['bookingId'] ?? data['booking_id'] ?? '').toString();
-              if (bId.isNotEmpty) {
-                NewRidePopup.activeBookingIds.remove(bId);
-              }
-              NativeOverlayService.bringToForeground(data);
-              SocketConnection.showRidePopup(data);
-            }
-          }
-        } catch (e) {
-          print("Error handling notification payload: $e");
-        }
-      }
-    },
-  );
-
-  final androidPlugin = flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-
-  // Create both notification channels
-  await androidPlugin?.createNotificationChannel(_rideAlertChannel);
-  await androidPlugin?.createNotificationChannel(_firebaseChannel);
-
-  // Request Android 13+ Notification Permission
-  await androidPlugin?.requestNotificationsPermission();
-
-  // Request FCM Permission
   try {
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: true,
-      provisional: false,
-      sound: true,
-    );
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } catch (e) {
-    print("FCM permission request error: $e");
+    print("Firebase init error: $e");
   }
 
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Initialize services early so Repository is available before UI starts
+  await initServices();
 
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-    print('FCM Foreground Message received: ${message.messageId}');
-    await _showForegroundNotification(message);
+  // Render the app immediately to prevent any blank white screen on launch
+  runApp(const MyApp());
+
+  // Initialize notifications and permissions asynchronously after first frame
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _initNotificationsAsync();
   });
+}
 
-  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    print('FCM Notification opened: ${message.messageId}');
-    if (message.data.isNotEmpty) {
-      final String type = (message.data['type'] ?? '').toString().toLowerCase();
-      if (type == 'new_ride' || type == 'new_ride_request') {
-        final bId = (message.data['bookingId'] ?? message.data['booking_id'] ?? '').toString();
-        if (bId.isNotEmpty) {
-          NewRidePopup.activeBookingIds.remove(bId);
+Future<void> _initNotificationsAsync() async {
+  try {
+    const initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initializationSettingsDarwin = DarwinInitializationSettings();
+    const initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (response.payload != null && response.payload!.isNotEmpty) {
+          try {
+            final data = jsonDecode(response.payload!);
+            if (data is Map<String, dynamic>) {
+              final String type = (data['type'] ?? '').toString().toLowerCase();
+              if (type == 'new_ride' || type == 'new_ride_request') {
+                final bId = (data['bookingId'] ?? data['booking_id'] ?? '').toString();
+                if (bId.isNotEmpty) {
+                  NewRidePopup.activeBookingIds.remove(bId);
+                }
+                NativeOverlayService.bringToForeground(data);
+                SocketConnection.showRidePopup(data);
+              }
+            }
+          } catch (e) {
+            print("Error handling notification payload: $e");
+          }
         }
-        NativeOverlayService.bringToForeground(message.data);
-        SocketConnection.showRidePopup(message.data);
-      }
-    }
-  });
+      },
+    );
 
-  // Handle cold launch from notification
-  FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
-    if (message != null && message.data.isNotEmpty) {
-      final String type = (message.data['type'] ?? '').toString().toLowerCase();
-      if (type == 'new_ride' || type == 'new_ride_request') {
-        Future.delayed(const Duration(milliseconds: 1000), () {
+    final androidPlugin = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+    // Create both notification channels
+    await androidPlugin?.createNotificationChannel(_rideAlertChannel);
+    await androidPlugin?.createNotificationChannel(_firebaseChannel);
+
+    // Request FCM & Notification Permission (single request avoids Android permission deadlock)
+    try {
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: true,
+        provisional: false,
+        sound: true,
+      );
+    } catch (e) {
+      print("FCM permission request error: $e");
+    }
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      print('FCM Foreground Message received: ${message.messageId}');
+      await _showForegroundNotification(message);
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('FCM Notification opened: ${message.messageId}');
+      if (message.data.isNotEmpty) {
+        final String type = (message.data['type'] ?? '').toString().toLowerCase();
+        if (type == 'new_ride' || type == 'new_ride_request') {
           final bId = (message.data['bookingId'] ?? message.data['booking_id'] ?? '').toString();
           if (bId.isNotEmpty) {
             NewRidePopup.activeBookingIds.remove(bId);
           }
+          NativeOverlayService.bringToForeground(message.data);
           SocketConnection.showRidePopup(message.data);
-        });
+        }
       }
-    }
-  });
+    });
 
-  runApp(const MyApp());
+    // Handle cold launch from notification
+    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+      if (message != null && message.data.isNotEmpty) {
+        final String type = (message.data['type'] ?? '').toString().toLowerCase();
+        if (type == 'new_ride' || type == 'new_ride_request') {
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            final bId = (message.data['bookingId'] ?? message.data['booking_id'] ?? '').toString();
+            if (bId.isNotEmpty) {
+              NewRidePopup.activeBookingIds.remove(bId);
+            }
+            SocketConnection.showRidePopup(message.data);
+          });
+        }
+      }
+    });
+  } catch (e) {
+    print("Notification setup error: $e");
+  }
 }
 
 Future<void> initServices() async {
   await Hive.initFlutter();
+
+  Get.put<ApiWrapper>(ApiWrapper(), permanent: true);
 
   Get.put(
     Repository(
@@ -295,13 +309,18 @@ Future<void> initServices() async {
         permanent: true,
       ),
     ),
+    permanent: true,
   );
 
   /// Services
-  await Get.putAsync(() => CommonService().init());
-  await Get.putAsync(() => DbService().init());
+  await Get.putAsync(() => CommonService().init(), permanent: true);
+  await Get.putAsync(() => DbService().init(), permanent: true);
 
-  SocketConnection.initSocket();
+  try {
+    SocketConnection.initSocket();
+  } catch (e) {
+    print("Socket init error: $e");
+  }
 }
 
 class DbService extends GetxService {

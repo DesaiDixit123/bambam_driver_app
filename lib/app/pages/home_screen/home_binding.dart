@@ -10,8 +10,10 @@ class HomeBinding extends Bindings {
       () => HomeController(
         Get.put(
           HomePresenter(Get.put(HomeUsecases(Get.find()), permanent: true)),
+          permanent: true,
         ),
       ),
+      fenix: true,
     );
     TripBinding().dependencies();
   }

@@ -11,8 +11,10 @@ class SplashBinding extends Bindings {
       () => SplashController(
         Get.put(
           SplashPresenter(Get.put(SplashUseCases(Get.find()), permanent: true)),
+          permanent: true,
         ),
       ),
+      fenix: true,
     );
   }
 }

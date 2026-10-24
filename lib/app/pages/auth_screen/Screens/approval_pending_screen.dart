@@ -56,11 +56,13 @@ class _ApprovalPendingScreenState extends State<ApprovalPendingScreen> {
         final decoded = jsonDecode(res.data);
         if (decoded != null && (decoded['data'] != null || decoded['Data'] != null)) {
           final data = decoded['data'] ?? decoded['Data'];
+          final bool isProfileCompleted = data['is_profile_completed'] == true;
           final status = (data['approval_status'] ?? '').toString().toLowerCase().trim();
           final reason = (data['rejected_reason'] ?? '').toString();
           final desc = (data['rejected_reason_description'] ?? '').toString();
 
           final repo = Get.find<Repository>();
+          repo.saveValue(LocalKeys.isProfileCompleted, isProfileCompleted);
           repo.saveValue(LocalKeys.driverApprovalStatus, status);
           repo.saveValue(LocalKeys.driverRejectedReason, reason);
           repo.saveValue(LocalKeys.driverRejectedDescription, desc);
@@ -71,12 +73,18 @@ class _ApprovalPendingScreenState extends State<ApprovalPendingScreen> {
             try {
               final ud = jsonDecode(udStr);
               if (ud is Map) {
+                ud['is_profile_completed'] = isProfileCompleted;
                 ud['approval_status'] = status;
                 ud['rejected_reason'] = reason;
                 ud['rejected_reason_description'] = desc;
                 repo.saveValue(LocalKeys.userDetails, jsonEncode(ud));
               }
             } catch (_) {}
+          }
+
+          if (!isProfileCompleted) {
+            RouteManagement.gotoHomeScreen();
+            return;
           }
 
           if (mounted) {
@@ -157,7 +165,7 @@ class _ApprovalPendingScreenState extends State<ApprovalPendingScreen> {
         automaticallyImplyLeading: false,
         title: Text(
           isRejected ? "Application Rejected" : "Application Status",
-          style: Styles.txtBlackColorBold20,
+          style: Styles.txtBlackColorW70020,
         ),
         centerTitle: true,
         actions: [
@@ -649,7 +657,12 @@ class _ApprovalPendingScreenState extends State<ApprovalPendingScreen> {
             TextButton.icon(
               onPressed: () {
                 final repo = Get.find<Repository>();
-                repo.clear();
+                repo.clearData(LocalKeys.authToken);
+                repo.clearData(LocalKeys.userDetails);
+                repo.clearData(LocalKeys.isProfileCompleted);
+                repo.clearData(LocalKeys.driverApprovalStatus);
+                repo.clearData(LocalKeys.driverRejectedReason);
+                repo.clearData(LocalKeys.driverRejectedDescription);
                 RouteManagement.gotoLoginScreen();
               },
               icon: const Icon(Icons.logout, size: 18, color: Colors.red),

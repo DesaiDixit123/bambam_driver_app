@@ -17,48 +17,61 @@ class SplashController extends GetxController {
   }
 
   void startTimer() async {
-    // Optionally check for updates (kept from your code)
-    Utility.checker
-        .checkUpdate()
-        .then((value) {
-          // Handle result if needed
-        })
-        .catchError((e) {
-          print("Update check failed: $e");
-        });
+    try {
+      Utility.checker
+          .checkUpdate()
+          .then((value) {
+            // Handle result if needed
+          })
+          .catchError((e) {
+            print("Update check failed: $e");
+          });
+    } catch (e) {
+      print("Update check error: $e");
+    }
 
     Future.delayed(const Duration(seconds: 3)).then((_) {
-      final repository = Get.find<Repository>();
-      final token = repository.getStringValue(LocalKeys.authToken);
+      try {
+        final repository = Get.find<Repository>();
+        final token = repository.getStringValue(LocalKeys.authToken);
 
-      // ✅ Null-safe and whitespace-safe check
-      if (token.isNotEmpty && token.trim().isNotEmpty) {
-        String approvalStatus = repository.getStringValue(LocalKeys.driverApprovalStatus).toLowerCase().trim();
-        if (approvalStatus.isEmpty) {
+        // ✅ Null-safe and whitespace-safe check
+        if (token.isNotEmpty && token.trim().isNotEmpty) {
+          String approvalStatus = repository.getStringValue(LocalKeys.driverApprovalStatus).toLowerCase().trim();
+          bool isProfileCompleted = repository.getBoolValue(LocalKeys.isProfileCompleted);
+
           final userDetailsStr = repository.getStringValue(LocalKeys.userDetails);
           if (userDetailsStr.isNotEmpty) {
             try {
               final ud = jsonDecode(userDetailsStr);
-              if (ud is Map && ud['approval_status'] != null) {
-                approvalStatus = ud['approval_status'].toString().toLowerCase().trim();
-                repository.saveValue(LocalKeys.driverApprovalStatus, approvalStatus);
+              if (ud is Map) {
+                if (approvalStatus.isEmpty && ud['approval_status'] != null) {
+                  approvalStatus = ud['approval_status'].toString().toLowerCase().trim();
+                  repository.saveValue(LocalKeys.driverApprovalStatus, approvalStatus);
+                }
+                if (ud['is_profile_completed'] != null) {
+                  isProfileCompleted = ud['is_profile_completed'] == true;
+                  repository.saveValue(LocalKeys.isProfileCompleted, isProfileCompleted);
+                }
               }
             } catch (_) {}
           }
-        }
 
-        // Check if approval is pending or rejected
-        if (approvalStatus == 'pending' || approvalStatus == 'rejected' || approvalStatus == 'draft') {
-          RouteManagement.gotoApprovalPendingScreen();
+          // Only show ApprovalPendingScreen if 6-step profile has been completed & submitted
+          if (isProfileCompleted &&
+              (approvalStatus == 'pending' || approvalStatus == 'rejected' || approvalStatus == 'draft')) {
+            RouteManagement.gotoApprovalPendingScreen();
+          } else {
+            RouteManagement.gotoHomeScreen();
+          }
         } else {
-          RouteManagement.gotoHomeScreen();
+          // No token → go to login
+          RouteManagement.gotoLoginScreen();
         }
-      } else {
-        // No token → go to login
+      } catch (e) {
+        print("Splash navigation error: $e");
         RouteManagement.gotoLoginScreen();
       }
-
-      update();
     });
   }
 }

@@ -1368,6 +1368,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
                         final repo = Get.find<Repository>();
                         repo.clearData(LocalKeys.authToken);
                         repo.clearData(LocalKeys.userDetails);
+                        repo.clearData(LocalKeys.isProfileCompleted);
+                        repo.clearData(LocalKeys.driverApprovalStatus);
+                        repo.clearData(LocalKeys.driverRejectedReason);
+                        repo.clearData(LocalKeys.driverRejectedDescription);
                         RouteManagement.gotoLoginScreen();
                         Utility.showMessage("Logout successful", MessageType.success, null, 'ok');
                       },

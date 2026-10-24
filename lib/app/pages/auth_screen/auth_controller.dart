@@ -383,6 +383,7 @@ class AuthController extends GetxController {
         }
 
         String approvalStatus = 'pending';
+        bool isProfileCompleted = false;
         if (driverMap != null) {
           final userDetails = jsonEncode(driverMap);
           Get.find<Repository>().saveValue(LocalKeys.userDetails, userDetails);
@@ -392,11 +393,13 @@ class AuthController extends GetxController {
             SocketConnection.updateChannelId(driverId);
           }
 
+          isProfileCompleted = driverMap['is_profile_completed'] == true;
           approvalStatus = (driverMap['approval_status'] ?? 'pending').toString().toLowerCase().trim();
           if (approvalStatus.isEmpty) approvalStatus = 'pending';
           final rejectedReason = (driverMap['rejected_reason'] ?? '').toString();
           final rejectedDesc = (driverMap['rejected_reason_description'] ?? '').toString();
 
+          Get.find<Repository>().saveValue(LocalKeys.isProfileCompleted, isProfileCompleted);
           Get.find<Repository>().saveValue(LocalKeys.driverApprovalStatus, approvalStatus);
           Get.find<Repository>().saveValue(LocalKeys.driverRejectedReason, rejectedReason);
           Get.find<Repository>().saveValue(LocalKeys.driverRejectedDescription, rejectedDesc);
@@ -418,8 +421,10 @@ class AuthController extends GetxController {
 
       final repo = Get.find<Repository>();
       final status = repo.getStringValue(LocalKeys.driverApprovalStatus).toLowerCase().trim();
+      final bool isProfileDone = repo.getBoolValue(LocalKeys.isProfileCompleted);
 
-      if (status == 'approved') {
+      // Only show ApprovalPendingScreen AFTER the driver has completed & submitted the 6-step profile
+      if (!isProfileDone || status == 'approved') {
         Utility.showMessage(successMsg, MessageType.success, null, 'ok');
         RouteManagement.gotoHomeScreen();
       } else {
@@ -434,7 +439,8 @@ class AuthController extends GetxController {
       }
       final repo = Get.find<Repository>();
       final status = repo.getStringValue(LocalKeys.driverApprovalStatus).toLowerCase().trim();
-      if (status == 'approved') {
+      final bool isProfileDone = repo.getBoolValue(LocalKeys.isProfileCompleted);
+      if (!isProfileDone || status == 'approved') {
         Utility.showMessage('Login successful', MessageType.success, null, 'ok');
         RouteManagement.gotoHomeScreen();
       } else {

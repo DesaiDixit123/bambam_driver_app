@@ -8,10 +8,10 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<SplashController>(
-      builder: (context) {
-        return Container(
-          color: ColorsValue.appBg,
-          child: Center(
+      builder: (controller) {
+        return Scaffold(
+          backgroundColor: ColorsValue.appBg,
+          body: Center(
             child: Image.asset(
               "assets/icon/icon.png",
               height: Dimens.twoHundred,

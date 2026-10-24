@@ -62,13 +62,13 @@ class _HomeScreenState extends State<HomeScreen> {
           hCtrl?.isLeave = prof['leave_status'] == true;
         }
 
-        // Auto-show popup for individual drivers if profile incomplete or rejected
+        // Auto-show popup for individual drivers if profile incomplete, or redirect to ApprovalPendingScreen if submitted
         if (isIndividual) {
           if (!isCompleted) {
             hCtrl?.showCompleteProfileDialog();
-          } else if (appStatus == 'rejected') {
-            final reason = (prof['rejected_reason'] ?? 'Documents rejected by Admin').toString();
-            hCtrl?.showRejectedProfileDialog(reason);
+          } else if (appStatus != 'approved') {
+            RouteManagement.gotoApprovalPendingScreen();
+            return;
           }
         }
       } else {

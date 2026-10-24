@@ -10,7 +10,7 @@ abstract class RouteManagement {
   static void gotoHomeScreen() => Get.offAllNamed<void>(Routes.homeScreen);
   static void goToInAppUpdateScreen(String appUrl) =>
       Get.offAllNamed<void>(Routes.inAppUpdateScreen, arguments: appUrl);
-  static void gotoLoginScreen() => Get.toNamed<void>(Routes.loginScreen);
+  static void gotoLoginScreen() => Get.offAllNamed<void>(Routes.loginScreen);
   static void gotoOtpVerifyScreen() =>
       Get.toNamed<void>(Routes.otpVerifyScreen);
   static void gotoBookingHistoryScreen() =>

@@ -14,4 +14,5 @@ abstract class LocalKeys {
   static String driverApprovalStatus = "driverApprovalStatus";
   static String driverRejectedReason = "driverRejectedReason";
   static String driverRejectedDescription = "driverRejectedDescription";
+  static String isProfileCompleted = "isProfileCompleted";
 }

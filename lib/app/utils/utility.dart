@@ -848,14 +848,8 @@ abstract class Utility {
             .request()
             .isPermanentlyDenied;
       } else {
-        status = await Permission.photos.request().isDenied;
-        permanentlyDenied = await Permission.photos
-            .request()
-            .isPermanentlyDenied;
-        statusVideos = await Permission.videos.request().isDenied;
-        permanentlyVideoDenied = await Permission.videos
-            .request()
-            .isPermanentlyDenied;
+        // Android 13+ uses system Photo Picker (no media permission needed)
+        return true;
       }
     } else {
       status = await Permission.photos.request().isDenied;
@@ -1047,10 +1041,7 @@ abstract class Utility {
             .request()
             .isPermanentlyDenied;
       } else {
-        status = await Permission.photos.request().isDenied;
-        permanentlyDenied = await Permission.photos
-            .request()
-            .isPermanentlyDenied;
+        return true;
       }
     }
     if (status || permanentlyDenied) {

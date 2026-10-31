@@ -657,6 +657,7 @@ class _ApprovalPendingScreenState extends State<ApprovalPendingScreen> {
             TextButton.icon(
               onPressed: () {
                 final repo = Get.find<Repository>();
+                repo.deleteAllSecuredValues();
                 repo.clearData(LocalKeys.authToken);
                 repo.clearData(LocalKeys.userDetails);
                 repo.clearData(LocalKeys.isProfileCompleted);

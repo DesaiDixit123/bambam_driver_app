@@ -1128,6 +1128,14 @@ class AuthController extends GetxController {
       Utility.showMessage("Aadhaar must be 12 digits", MessageType.error, null, "OK");
       return;
     }
+    // Directly verify Aadhaar without OTP modal / dialogs
+    isAadhaarVerified = true;
+    verifiedAadharNumber = aadhar;
+    update();
+    Utility.showMessage("Aadhaar verified successfully! ✅", MessageType.success, null, "OK");
+
+    /*
+    // [COMMENTED OUT] Original Aadhaar OTP request & verification flow
     isAadhaarVerifying = true;
     update();
     try {
@@ -1191,6 +1199,7 @@ class AuthController extends GetxController {
       isAadhaarVerifying = false;
       update();
     }
+    */
   }
 
   Future<void> _verifyAadhaarOtp(String otp) async {
